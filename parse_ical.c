@@ -137,77 +137,6 @@ static void SkipSpace(parser *Parser, buffer *Buffer)
         {
             Running = 0;
         }
-#if 0
-        switch(SkipState)
-        {
-        case skip_state_CR_or_LF:
-            if(Char == char_code_CR)
-            {
-                SkipState = skip_state_LF;
-                ++Parser->I;
-            }
-            else if(Char == char_code_LF || Char == char_code_Newline)
-            {
-                if(CHAR_IS_SPACE(PeekChar))
-                {
-                    SkipState = skip_state_Done;
-                }
-                else
-                {
-                    SkipState = skip_state_Space;
-                }
-                ++Parser->I;
-            }
-            else if(Char == '-')
-            {
-                s32 Peek = Parser->I + 1;
-                if(Peek < Buffer->Size && Buffer->Data[Peek] == '-')
-                {
-                    ParseComment(Buffer, Parser);
-                }
-                else
-                {
-                    SkipState = skip_state_Done;
-                }
-            }
-            else if(CHAR_IS_SPACE(Char))
-            {
-                ++Parser->I;
-            }
-            else
-            {
-                SkipState = skip_state_Done;
-            }
-            break;
-        case skip_state_LF:
-            if(Char == char_code_LF)
-            {
-                SkipState = skip_state_Space;
-                ++Parser->I;
-            }
-            break;
-        case skip_state_Space:
-            if(CHAR_IS_SPACE(Char))
-            {
-                SkipState = skip_state_CR_or_LF;
-                ++Parser->I;
-            }
-            else
-            {
-                SkipState = skip_state_Done;
-                Parser->State = parser_state_Root;
-                Parser->InAssignment = 0;
-            }
-            break;
-        case skip_state_Done:
-            Running = 0;
-            break;
-        default:
-            Parser->State = parser_state_Error;
-            printf("SkipSpace default error\n");
-            return;
-        }
-#endif
     }
 }
 
@@ -405,8 +334,8 @@ static void ParseICal(buffer *Buffer)
 
 static void TestParseICal()
 {
-    buffer *Buffer = ReadFileIntoBuffer("./__test.ics");
-    /* buffer *Buffer = ReadFileIntoBuffer("./__test2.ics"); */
+    /* buffer *Buffer = ReadFileIntoBuffer("./__test.ics"); */
+    buffer *Buffer = ReadFileIntoBuffer("./__test2.ics");
     /* buffer *Buffer = ReadFileIntoBuffer("./__test_Meeting_After_School.ics"); */
     ParseICal(Buffer);
     FreeBuffer(Buffer);
