@@ -56,6 +56,7 @@ static parser CreateParser()
     return Parser;
 }
 
+#if 0
 static void ParseComment(buffer *Buffer, parser *Parser)
 {
     b32 Running = 1;
@@ -328,6 +329,63 @@ static void ParseICal(buffer *Buffer)
             printf("ParseICal default error %d\n", Parser.State);
             Parser.State = parser_state_Error;
             return;
+        }
+    }
+}
+#endif
+
+static void ExpectChar(parser *Parser, buffer *Buffer, u8 Char)
+{
+
+}
+
+static void ParseName(parser *Parser, buffer *Buffer)
+{
+
+}
+
+static void ParseParam(parser *Parser, buffer *Buffer)
+{
+
+}
+
+static void ParseParams(parser *Parser, buffer *Buffer)
+{
+    /* ";" Param */
+}
+
+static void ParseValue(parser *Parser, buffer *Buffer)
+{
+
+}
+
+static void ParseCRLF(parser *Parser, buffer *Buffer)
+{
+
+}
+
+static void ParseContentLine(parser *Parser, buffer *Buffer)
+{
+    /* Name *Params ":" Value CRLF */
+    ParseName(Parser, Buffer);
+    ParseParams(Parser, Buffer);
+    ExpectChar(Parser, Buffer, ':');
+    ParseValue(Parser, Buffer);
+    ParseCRLF(Parser, Buffer);
+}
+
+static void ParseICal(buffer *Buffer)
+{
+    parser Parser = CreateParser();
+    while(Parser.I < Buffer->Size)
+    {
+        switch(Parser.State)
+        {
+        case parser_state_ContentLine:
+            ParseContentLine(&Parser, Buffer);
+            break;
+        default:
+            break;
         }
     }
 }

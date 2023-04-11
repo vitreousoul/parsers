@@ -28,11 +28,30 @@ typedef struct
 typedef enum
 {
     parser_state_None,
-    parser_state_Error,
-    parser_state_Root,
-    parser_state_BindOrAssign,
-    parser_state_Assign,
-    parser_state_Data,
+    parser_state_ContentLine,
+    parser_state_Params,
+    parser_state_Name,
+    parser_state_Param,
+    parser_state_ParamRest,
+    parser_state_Value,
+    parser_state_CRLF,
+    parser_state_IanaToken,
+    parser_state_IanaChar,
+    parser_state_XName,
+    parser_state_ParamName,
+    parser_state_ParamValue,
+    parser_state_VendorId,
+    parser_state_ParamText,
+    parser_state_QuotedString,
+    parser_state_ValueChar,
+    parser_state_QsafeChar,
+    parser_state_SafeChar,
+    parser_state_NonUsAscii,
+    parser_state_Alpha,
+    parser_state_AlphaLower,
+    parser_state_AlphaUpper,
+    parser_state_AlphaNum,
+    parser_state_Digit,
 } parser_state;
 
 typedef struct
@@ -44,10 +63,10 @@ typedef struct
 
 typedef enum
 {
-   skip_state_CR_or_LF,
-   skip_state_LF,
-   skip_state_Space,
-   skip_state_Done,
+    skip_state_CR_or_LF,
+    skip_state_LF,
+    skip_state_Space,
+    skip_state_Done,
 } skip_state;
 
 typedef struct
