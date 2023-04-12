@@ -28,6 +28,7 @@ typedef struct
 typedef enum
 {
     parser_state_None,
+    parser_state_Error,
     parser_state_ContentLine,
     parser_state_Params,
     parser_state_Name,
@@ -89,3 +90,39 @@ typedef struct
     range AssignName;
     range Value;
 } binding;
+
+char *DebugParserState(parser_state State);
+
+char *DebugParserState(parser_state State)
+{
+    switch(State)
+    {
+    case parser_state_None: return "None";
+    case parser_state_Error: return "Error";
+    case parser_state_ContentLine: return "ContentLine";
+    case parser_state_Params: return "Params";
+    case parser_state_Name: return "Name";
+    case parser_state_Param: return "Param";
+    case parser_state_ParamRest: return "ParamRest";
+    case parser_state_Value: return "Value";
+    case parser_state_CRLF: return "CRLF";
+    case parser_state_IanaToken: return "IanaToken";
+    case parser_state_IanaChar: return "IanaChar";
+    case parser_state_XName: return "XName";
+    case parser_state_ParamName: return "ParamName";
+    case parser_state_ParamValue: return "ParamValue";
+    case parser_state_VendorId: return "VendorId";
+    case parser_state_ParamText: return "ParamText";
+    case parser_state_QuotedString: return "QuotedString";
+    case parser_state_ValueChar: return "ValueChar";
+    case parser_state_QsafeChar: return "QsafeChar";
+    case parser_state_SafeChar: return "SafeChar";
+    case parser_state_NonUsAscii: return "NonUsAscii";
+    case parser_state_Alpha: return "Alpha";
+    case parser_state_AlphaLower: return "AlphaLower";
+    case parser_state_AlphaUpper: return "AlphaUpper";
+    case parser_state_AlphaNum: return "AlphaNum";
+    case parser_state_Digit: return "Digit";
+    default: return "<Unspecified>";
+    }
+}
