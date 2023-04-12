@@ -339,19 +339,71 @@ static void ExpectChar(parser *Parser, buffer *Buffer, u8 Char)
 
 }
 
-static void ParseName(parser *Parser, buffer *Buffer)
+static void ParseIanaToken(parser *Parser, buffer *Buffer)
 {
 
 }
 
-static void ParseParam(parser *Parser, buffer *Buffer)
+static void ParseXName(parser *Parser, buffer *Buffer)
 {
 
+}
+
+static void ParseName(parser *Parser, buffer *Buffer)
+{
+    /* IanaToken / XName */
+    u8 PeekChar = PEEK(Buffer, Parser);
+    if(Buffer->Data[Parser->I] == 'X' && PeekChar == '-')
+    {
+        ParseXName(Parser, Buffer);
+    }
+    else
+    {
+        ParseIanaToken(Parser, Buffer);
+    }
+}
+
+static void ParseParamRest(parser *Parser, buffer *Buffer)
+{
+    /* "," ParamValue */
+    for(;;)
+    {
+        if(Buffer->Data[Parser->I] == ',')
+        {
+            ++Parser->I;
+            ParseParamValue(Parser, Buffer);
+        }
+        else
+        {
+            break;
+        }
+    }
+}
+
+static void ParseParam(parser *Parser, buffer *Buffer)
+{
+    /* Name "=" ParamValue *ParamRest */
+    ParseName(Parser, Buffer);
+    ExpectChar(Parser, Buffer, '=');
+    ParseParamValue(Parser, Buffer);
+    ParseParamRest(Parser, Buffer);
 }
 
 static void ParseParams(parser *Parser, buffer *Buffer)
 {
     /* ";" Param */
+    for(;;)
+    {
+        if(Buffer->Data[Parser->I] == ';')
+        {
+            ++Parser->I;
+            ParseParam(Parser, Buffer);
+        }
+        else
+        {
+            break;
+        }
+    }
 }
 
 static void ParseValue(parser *Parser, buffer *Buffer)
@@ -361,7 +413,8 @@ static void ParseValue(parser *Parser, buffer *Buffer)
 
 static void ParseCRLF(parser *Parser, buffer *Buffer)
 {
-
+    ExpectChar(Parser, Buffer, char_code_CR);
+    ExpectChar(Parser, Buffer, char_code_LF);
 }
 
 static void ParseContentLine(parser *Parser, buffer *Buffer)
