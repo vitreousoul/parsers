@@ -1,3 +1,4 @@
+/* https://www.rfc-editor.org/rfc/rfc3629.txt */
 #include "parse_ical.h"
 
 #define CHAR_IS_LOWER_CASE(char) (((char) >= 'a') && ((char) <= 'z'))
@@ -6,6 +7,7 @@
 #define CHAR_IS_IDENT_REST(char) (((char) == '-') || CHAR_IS_IDENT_START(char))
 #define CHAR_IS_SPACE(char) (((char) == ' ') || ((char) == '\t'))
 #define IS_ICAL_ESCAPE_CODE(char) ((char) == ',' || (char) == ';')
+#define IS_IN_VALUE_RANGE(char) ((char))
 
 #define PEEK(buffer, parser) ((parser)->I < (buffer)->Size ? (buffer)->Data[(parser)->I] : 0)
 
@@ -363,6 +365,11 @@ static void ParseName(parser *Parser, buffer *Buffer)
     }
 }
 
+static void ParseParamValue(parser *Parser, buffer *Buffer)
+{
+
+}
+
 static void ParseParamRest(parser *Parser, buffer *Buffer)
 {
     /* "," ParamValue */
@@ -391,7 +398,7 @@ static void ParseParam(parser *Parser, buffer *Buffer)
 
 static void ParseParams(parser *Parser, buffer *Buffer)
 {
-    /* ";" Param */
+    /* *(";" Param) */
     for(;;)
     {
         if(Buffer->Data[Parser->I] == ';')
@@ -406,9 +413,47 @@ static void ParseParams(parser *Parser, buffer *Buffer)
     }
 }
 
+static void ParseNonUsAscii(parser *Parser, buffer *Buffer)
+{
+    /* TODO: this might need to be rolled into other functions... */
+    /*
+      NonUsAscii  = UTF8-2 / UTF8-3 / UTF8-4
+
+      UTF8-2      = %xC2-DF UTF8-tail
+
+      UTF8-3      = %xE0 %xA0-BF UTF8-tail / %xE1-EC 2( UTF8-tail ) /
+      %xED %x80-9F UTF8-tail / %xEE-EF 2( UTF8-tail )
+
+      FIRST(NonUsAscii) = %xC2-DF / %xE0 / %xE1-EC / %xED / %xEE-EF
+    */
+    u8 Char = Buffer->Data[Parser->I];
+    b32 IsC2ToDF = Char > 0xC2 && Char < 0xDF;
+    b32 IsE0 = Char > 0xE0;
+    b32 IsE1ToEC = Char > 0xE1 && Char < 0xEC;
+    b32 IsED = Char > 0xE0;
+    b32 IsEEToEF = Char > 0xEE && Char < 0xEF;
+    if(IsC2ToDF | IsE0 | IsE1ToEC | IsED | IsEEToEF)
+    {
+        ++Parser->I;
+    }
+    else
+    {
+    }
+}
+
 static void ParseValue(parser *Parser, buffer *Buffer)
 {
-
+    /*
+      Value        = *ValueChar
+      ValueChar    = WSP / %x21-7E / NonUsAscii
+      FIRST(ValueChar) = ' ' / '\t' /
+    */
+    for(;;)
+    {
+        u8 Char = Buffer->Data[Parser->I];
+        b32 IsSpace = CHAR_IS_SPACE(Char);
+        b32 IsInValueRange = IS_IN_VALUE_RANGE(Char);
+    }
 }
 
 static void ParseCRLF(parser *Parser, buffer *Buffer)
@@ -419,7 +464,7 @@ static void ParseCRLF(parser *Parser, buffer *Buffer)
 
 static void ParseContentLine(parser *Parser, buffer *Buffer)
 {
-    /* Name *Params ":" Value CRLF */
+    /* Name Params ":" Value CRLF */
     ParseName(Parser, Buffer);
     ParseParams(Parser, Buffer);
     ExpectChar(Parser, Buffer, ':');
