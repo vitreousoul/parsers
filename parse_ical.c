@@ -7,14 +7,27 @@
 #define CHAR_IS_DIGIT(char) (((char) >= '0') && ((char) <= '9'))
 #define CHAR_IS_ALPHANUM(char) (CHAR_IS_ALPHA(char) || CHAR_IS_DIGIT(char))
 #define CHAR_IS_SPACE(char) (((char) == ' ') || ((char) == '\t'))
-#define CHAR_IS_IANA_CHAR(char) (CHAR_IS_ALPHANUM(char) || ((char) == '"'))
-
+#define CHAR_IS_IANA_CHAR(char) (CHAR_IS_ALPHANUM(char) || ((char) == '-'))
 #define CHAR_IS_NON_USASCII(char) (((char) == 0xE0) ||                  \
                                    ((char) == 0xED) ||                  \
                                    ((char) >= 0xC2 && (char) <= 0xDF) || \
                                    ((char) >= 0xE1 && (char) <= 0xEC) || \
                                    ((char) >= 0xEE && (char) <= 0xEF))
+#define CHAR_IS_Q_SAFE_STRING(char) (CHAR_IS_SPACE(char) ||             \
+                                     (char) >= 0x21 ||                  \
+                                     ((char) >= 0x23 && (char) <= 0x7E) || \
+                                     CHAR_IS_NON_USASCII(char))
 
+#define CHAR_IS_SAFE_CHAR(char) (CHAR_IS_SPACE(char) ||                 \
+                                 (char) >= 0x21 ||                      \
+                                 ((char) >= 0x23 && (char) <= 0x2B) ||  \
+                                 ((char) >= 0x2D && (char) <= 0x39) ||  \
+                                 ((char) >= 0x3C && (char) <= 0x7E) ||  \
+                                 CHAR_IS_NON_USASCII(char))
+
+#define CHAR_IS_VALUE(char) (CHAR_IS_SPACE(char) ||                 \
+                                 ((char) >= 0x21 && (char) <= 0x7E) ||  \
+                                 CHAR_IS_NON_USASCII(char))
 
 #define PEEK(buffer, parser) ((parser)->I+1 < (buffer)->Size ? (buffer)->Data[(parser)->I+1] : 0)
 #define PEEK2(buffer, parser) ((parser)->I+2 < (buffer)->Size ? (buffer)->Data[(parser)->I+2] : 0)
@@ -72,7 +85,7 @@ static void ExpectChar(parser *Parser, buffer *Buffer, u8 Char)
     }
     else
     {
-        printf("Expected char '%c'\n", Char);
+        printf("Expected char (%d)\n", Char);
         Parser->State = parser_state_Error;
     }
 }
@@ -87,6 +100,7 @@ static void ParseIanaToken(parser *Parser, buffer *Buffer)
     {
         if(CHAR_IS_IANA_CHAR(Buffer->Data[Parser->I]))
         {
+            printf("%c", Buffer->Data[Parser->I]);
             ++Parser->I;
         }
         else
@@ -104,6 +118,7 @@ static void ParseXName(parser *Parser, buffer *Buffer)
 
     */
     /* NOTE: assume we has already parsed "X-" */
+    printf("X-");
     b32 VendorId1 = CHAR_IS_ALPHANUM(Buffer->Data[Parser->I]);
     b32 VendorId2 = CHAR_IS_ALPHANUM(PEEK(Buffer, Parser));
     b32 VendorId3 = CHAR_IS_ALPHANUM(PEEK2(Buffer, Parser));
@@ -111,9 +126,11 @@ static void ParseXName(parser *Parser, buffer *Buffer)
     b32 IsVendorId = VendorId1 | VendorId2 | VendorId3 | VendorId4;
     if(IsVendorId)
     {
+        printf("%c%c%c%c", VendorId1, VendorId2, VendorId3, VendorId4);
         Parser->I += 4;
     }
     ParseIanaToken(Parser, Buffer);
+    printf("\n");
 }
 
 static void ParseName(parser *Parser, buffer *Buffer)
@@ -129,15 +146,46 @@ static void ParseName(parser *Parser, buffer *Buffer)
     {
         ParseIanaToken(Parser, Buffer);
     }
+    printf("\n");
 }
 static void ParseQuotedString(parser *Parser, buffer *Buffer)
 {
-
+    /*
+      QuotedString = "\"" *QsafeChar "\""
+      QsafeChar    = WSP / %x21 / %x23-7E / NonUsAscii
+    */
+    ExpectChar(Parser, Buffer, '"');
+    for(;;)
+    {
+        if(CHAR_IS_Q_SAFE_STRING(Buffer->Data[Parser->I]))
+        {
+            ++Parser->I;
+        }
+        else
+        {
+            break;
+        }
+    }
+    ExpectChar(Parser, Buffer, '"');
 }
 
 static void ParamText(parser *Parser, buffer *Buffer)
 {
-
+    /*
+      ParamText    = *SafeChar
+      SafeChar     = WSP / %x21 / %x23-2B / %x2D-39 / %x3C-7E / NonUsAscii
+    */
+    for(;;)
+    {
+        if(CHAR_IS_SAFE_CHAR(Buffer->Data[Parser->I]))
+        {
+            ++Parser->I;
+        }
+        else
+        {
+            break;
+        }
+    }
 }
 
 static void ParseParamValue(parser *Parser, buffer *Buffer)
@@ -201,34 +249,6 @@ static void ParseParams(parser *Parser, buffer *Buffer)
     }
 }
 
-static void ParseNonUsAscii(parser *Parser, buffer *Buffer)
-{
-    /* TODO: this might need to be rolled into other functions... */
-    /*
-      NonUsAscii  = UTF8-2 / UTF8-3 / UTF8-4
-
-      UTF8-2      = %xC2-DF UTF8-tail
-
-      UTF8-3      = %xE0 %xA0-BF UTF8-tail / %xE1-EC 2( UTF8-tail ) /
-      %xED %x80-9F UTF8-tail / %xEE-EF 2( UTF8-tail )
-
-      FIRST(NonUsAscii) = %xC2-DF / %xE0 / %xE1-EC / %xED / %xEE-EF
-    */
-    u8 Char = Buffer->Data[Parser->I];
-    b32 IsC2ToDF = Char >= 0xC2 && Char <= 0xDF;
-    b32 IsE0 = Char == 0xE0;
-    b32 IsE1ToEC = Char >= 0xE1 && Char <= 0xEC;
-    b32 IsED = Char == 0xED;
-    b32 IsEEToEF = Char >= 0xEE && Char <= 0xEF;
-    if(IsC2ToDF | IsE0 | IsE1ToEC | IsED | IsEEToEF)
-    {
-        ++Parser->I;
-    }
-    else
-    {
-    }
-}
-
 static void ParseValue(parser *Parser, buffer *Buffer)
 {
     /*
@@ -239,16 +259,33 @@ static void ParseValue(parser *Parser, buffer *Buffer)
     */
     for(;;)
     {
-        u8 Char = Buffer->Data[Parser->I];
-        b32 IsSpace = CHAR_IS_SPACE(Char);
-        b32 IsNonUsAscii = CHAR_IS_NON_USASCII(Char);
+        if(CHAR_IS_VALUE(Buffer->Data[Parser->I]))
+        {
+            ++Parser->I;
+        }
+        else
+        {
+            break;
+        }
     }
 }
 
 static void ParseCRLF(parser *Parser, buffer *Buffer)
 {
-    ExpectChar(Parser, Buffer, char_code_CR);
-    ExpectChar(Parser, Buffer, char_code_LF);
+    u8 Char = Buffer->Data[Parser->I];
+    if(Char == char_code_CR)
+    {
+        ExpectChar(Parser, Buffer, char_code_CR);
+        ExpectChar(Parser, Buffer, char_code_LF);
+    }
+    else if(Char == '\n')
+    {
+        ++Parser->I;
+    }
+    else
+    {
+        printf("[ Error ] expected newline sequence\n");
+    }
 }
 
 static void ParseContentLine(parser *Parser, buffer *Buffer)
@@ -265,6 +302,8 @@ static void ParseICal(buffer *Buffer)
 {
     b32 Running = 1;
     parser Parser = CreateParser();
+    char ErrorChars[32];
+    s32 ErrorIndex;
     Parser.State = parser_state_ContentLine;
     while(Running && Parser.I < Buffer->Size)
     {
@@ -275,6 +314,10 @@ static void ParseICal(buffer *Buffer)
             ParseContentLine(&Parser, Buffer);
             break;
         case parser_state_Error:
+            ErrorIndex = Parser.I - 32 > 0 ? Parser.I - 32 : 0;
+            memcpy(ErrorChars, &Buffer->Data[Parser.I], Parser.I - ErrorIndex);
+            ErrorChars[31] = 0;
+            printf("%s\n", ErrorChars);
             Running = 0;
             break;
         default:
@@ -286,7 +329,7 @@ static void ParseICal(buffer *Buffer)
 
 static void TestParseICal()
 {
-    char *FilePath = "./__test.ics";
+    char *FilePath = "./__test2.ics";
     buffer *Buffer = ReadFileIntoBuffer(FilePath);
     if(Buffer)
     {
