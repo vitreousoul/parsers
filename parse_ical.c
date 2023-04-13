@@ -9,6 +9,13 @@
 #define CHAR_IS_SPACE(char) (((char) == ' ') || ((char) == '\t'))
 #define CHAR_IS_IANA_CHAR(char) (CHAR_IS_ALPHANUM(char) || ((char) == '"'))
 
+#define CHAR_IS_NON_USASCII(char) (((char) == 0xE0) ||                  \
+                                   ((char) == 0xED) ||                  \
+                                   ((char) >= 0xC2 && (char) <= 0xDF) || \
+                                   ((char) >= 0xE1 && (char) <= 0xEC) || \
+                                   ((char) >= 0xEE && (char) <= 0xEF))
+
+
 #define PEEK(buffer, parser) ((parser)->I+1 < (buffer)->Size ? (buffer)->Data[(parser)->I+1] : 0)
 #define PEEK2(buffer, parser) ((parser)->I+2 < (buffer)->Size ? (buffer)->Data[(parser)->I+2] : 0)
 #define PEEK3(buffer, parser) ((parser)->I+3 < (buffer)->Size ? (buffer)->Data[(parser)->I+3] : 0)
@@ -211,7 +218,7 @@ static void ParseNonUsAscii(parser *Parser, buffer *Buffer)
     b32 IsC2ToDF = Char >= 0xC2 && Char <= 0xDF;
     b32 IsE0 = Char == 0xE0;
     b32 IsE1ToEC = Char >= 0xE1 && Char <= 0xEC;
-    b32 IsED = Char == 0xE0;
+    b32 IsED = Char == 0xED;
     b32 IsEEToEF = Char >= 0xEE && Char <= 0xEF;
     if(IsC2ToDF | IsE0 | IsE1ToEC | IsED | IsEEToEF)
     {
@@ -227,12 +234,14 @@ static void ParseValue(parser *Parser, buffer *Buffer)
     /*
       Value        = *ValueChar
       ValueChar    = WSP / %x21-7E / NonUsAscii
-      FIRST(ValueChar) = ' ' / '\t' /
+      FIRST(ValueChar) = ' ' / '\t' / %x21-7E / FIRST(NonUsAscii)
+      FIRST(NonUsAscii) = %xC2-DF / %xE0 / %xE1-EC / %xED / %xEE-EF
     */
     for(;;)
     {
         u8 Char = Buffer->Data[Parser->I];
         b32 IsSpace = CHAR_IS_SPACE(Char);
+        b32 IsNonUsAscii = CHAR_IS_NON_USASCII(Char);
     }
 }
 
