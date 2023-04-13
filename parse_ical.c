@@ -123,7 +123,7 @@ static void ParseXName(parser *Parser, buffer *Buffer)
     b32 VendorId2 = CHAR_IS_ALPHANUM(PEEK(Buffer, Parser));
     b32 VendorId3 = CHAR_IS_ALPHANUM(PEEK2(Buffer, Parser));
     b32 VendorId4 = PEEK3(Buffer, Parser) == '-';
-    b32 IsVendorId = VendorId1 | VendorId2 | VendorId3 | VendorId4;
+    b32 IsVendorId = VendorId1 && VendorId2 && VendorId3 && VendorId4;
     if(IsVendorId)
     {
         printf("%c%c%c%c", VendorId1, VendorId2, VendorId3, VendorId4);
@@ -307,7 +307,6 @@ static void ParseICal(buffer *Buffer)
     Parser.State = parser_state_ContentLine;
     while(Running && Parser.I < Buffer->Size)
     {
-        printf("[ ParserState ] %s\n", DebugParserState(Parser.State));
         switch(Parser.State)
         {
         case parser_state_ContentLine:
@@ -315,7 +314,7 @@ static void ParseICal(buffer *Buffer)
             break;
         case parser_state_Error:
             ErrorIndex = Parser.I - 32 > 0 ? Parser.I - 32 : 0;
-            memcpy(ErrorChars, &Buffer->Data[Parser.I], Parser.I - ErrorIndex);
+            memcpy(ErrorChars, &Buffer->Data[Parser.I-32], Parser.I - ErrorIndex);
             ErrorChars[31] = 0;
             printf("%s\n", ErrorChars);
             Running = 0;
@@ -327,12 +326,45 @@ static void ParseICal(buffer *Buffer)
     }
 }
 
+static void RemoveLineContinuations(buffer *Buffer)
+{
+    if(!Buffer) return;
+    printf("RemoveLineContinuations\n");
+    s32 BufferIndex, WriteIndex = 0, ContinuationCount = 0;
+    for(BufferIndex = 0; BufferIndex < Buffer->Size; ++BufferIndex)
+    {
+        s32 RemainingCharCount = (Buffer->Size - 1) - BufferIndex;
+        if(RemainingCharCount >= 3)
+        {
+            u8 Char1 = Buffer->Data[BufferIndex];
+            u8 Char2 = Buffer->Data[BufferIndex+1];
+            u8 Char3 = Buffer->Data[BufferIndex+2];
+            b32 NewlineSpace = Char1 == char_code_Newline && CHAR_IS_SPACE(Char2);
+            b32 CRLFSpace = Char1 == char_code_CR && Char2 == char_code_LF && CHAR_IS_SPACE(Char3);
+            if(NewlineSpace || CRLFSpace)
+            {
+                BufferIndex += 3;
+                ++ContinuationCount;
+            }
+        }
+        Buffer->Data[WriteIndex] = Buffer->Data[BufferIndex];
+        ++WriteIndex;
+    }
+    Buffer->Size -= 3 * ContinuationCount;
+}
+
 static void TestParseICal()
 {
     char *FilePath = "./__test2.ics";
     buffer *Buffer = ReadFileIntoBuffer(FilePath);
+    s32 I;
     if(Buffer)
     {
+        printf("BufferSize %d\n", Buffer->Size);
+        RemoveLineContinuations(Buffer);
+        printf("BufferSize %d\n", Buffer->Size);
+        /* for(I = 0; I < Buffer->Size; ++I) printf("%c", Buffer->Data[I]); */
+        /* printf("\n"); */
         ParseICal(Buffer);
         FreeBuffer(Buffer);
     }
