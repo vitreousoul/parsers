@@ -358,7 +358,6 @@ static void TestParseICal()
 {
     char *FilePath = "./__test2.ics";
     buffer *Buffer = ReadFileIntoBuffer(FilePath);
-    s32 I;
     if(Buffer)
     {
         printf("BufferSize %d\n", Buffer->Size);
