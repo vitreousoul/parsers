@@ -298,11 +298,12 @@ static void ParseContentLine(parser *Parser, buffer *Buffer)
     ParseCRLF(Parser, Buffer);
 }
 
+#define ERROR_BACK_BUFFER_COUNT 64
 static void ParseICal(buffer *Buffer)
 {
     b32 Running = 1;
     parser Parser = CreateParser();
-    char ErrorChars[32];
+    char ErrorChars[ERROR_BACK_BUFFER_COUNT];
     s32 ErrorIndex;
     Parser.State = parser_state_ContentLine;
     while(Running && Parser.I < Buffer->Size)
@@ -313,9 +314,9 @@ static void ParseICal(buffer *Buffer)
             ParseContentLine(&Parser, Buffer);
             break;
         case parser_state_Error:
-            ErrorIndex = Parser.I - 32 > 0 ? Parser.I - 32 : 0;
-            memcpy(ErrorChars, &Buffer->Data[Parser.I-32], Parser.I - ErrorIndex);
-            ErrorChars[31] = 0;
+            ErrorIndex = Parser.I - ERROR_BACK_BUFFER_COUNT > 0 ? Parser.I - ERROR_BACK_BUFFER_COUNT : 0;
+            memcpy(ErrorChars, &Buffer->Data[Parser.I-ERROR_BACK_BUFFER_COUNT], Parser.I - ErrorIndex);
+            ErrorChars[ERROR_BACK_BUFFER_COUNT-1] = 0;
             printf("%s\n", ErrorChars);
             Running = 0;
             break;
