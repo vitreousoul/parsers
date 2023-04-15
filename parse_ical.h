@@ -15,8 +15,6 @@ typedef enum
 {
     char_code_CR = 0x0d,
     char_code_LF = 0x0a,
-    char_code_Space = ' ',
-    char_code_Tab = '\t',
     char_code_Newline = '\n',
 } char_code;
 
@@ -39,35 +37,6 @@ typedef struct
     s32 I;
     b32 InAssignment;
 } parser;
-
-typedef enum
-{
-    skip_state_CR_or_LF,
-    skip_state_LF,
-    skip_state_Space,
-    skip_state_Done,
-} skip_state;
-
-typedef struct
-{
-    u8 *Begin;
-    u8 *End;
-} range;
-
-typedef enum
-{
-    binding_kind_None,
-    binding_kind_Bind,
-    binding_kind_Assign,
-} binding_kind;
-
-typedef struct
-{
-    range Name;
-    binding_kind Kind;
-    range AssignName;
-    range Value;
-} binding;
 
 char *DebugParserState(parser_state State);
 
