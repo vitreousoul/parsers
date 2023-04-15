@@ -126,7 +126,7 @@ static void ParseXName(parser *Parser, buffer *Buffer)
     b32 IsVendorId = VendorId1 && VendorId2 && VendorId3 && VendorId4;
     if(IsVendorId)
     {
-        printf("%c%c%c%c", VendorId1, VendorId2, VendorId3, VendorId4);
+        printf("%c%c%c%c", Buffer->Data[Parser->I], Buffer->Data[Parser->I+1], Buffer->Data[Parser->I+2], Buffer->Data[Parser->I+3]);
         Parser->I += 4;
     }
     ParseIanaToken(Parser, Buffer);
