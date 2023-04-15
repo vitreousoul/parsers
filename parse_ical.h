@@ -31,29 +31,6 @@ typedef enum
     parser_state_None,
     parser_state_Error,
     parser_state_ContentLine,
-    parser_state_Params,
-    parser_state_Name,
-    parser_state_Param,
-    parser_state_ParamRest,
-    parser_state_Value,
-    parser_state_CRLF,
-    parser_state_IanaToken,
-    parser_state_IanaChar,
-    parser_state_XName,
-    parser_state_ParamName,
-    parser_state_ParamValue,
-    parser_state_VendorId,
-    parser_state_ParamText,
-    parser_state_QuotedString,
-    parser_state_ValueChar,
-    parser_state_QsafeChar,
-    parser_state_SafeChar,
-    parser_state_NonUsAscii,
-    parser_state_Alpha,
-    parser_state_AlphaLower,
-    parser_state_AlphaUpper,
-    parser_state_AlphaNum,
-    parser_state_Digit,
 } parser_state;
 
 typedef struct
@@ -101,29 +78,6 @@ char *DebugParserState(parser_state State)
     case parser_state_None: return "None";
     case parser_state_Error: return "Error";
     case parser_state_ContentLine: return "ContentLine";
-    case parser_state_Params: return "Params";
-    case parser_state_Name: return "Name";
-    case parser_state_Param: return "Param";
-    case parser_state_ParamRest: return "ParamRest";
-    case parser_state_Value: return "Value";
-    case parser_state_CRLF: return "CRLF";
-    case parser_state_IanaToken: return "IanaToken";
-    case parser_state_IanaChar: return "IanaChar";
-    case parser_state_XName: return "XName";
-    case parser_state_ParamName: return "ParamName";
-    case parser_state_ParamValue: return "ParamValue";
-    case parser_state_VendorId: return "VendorId";
-    case parser_state_ParamText: return "ParamText";
-    case parser_state_QuotedString: return "QuotedString";
-    case parser_state_ValueChar: return "ValueChar";
-    case parser_state_QsafeChar: return "QsafeChar";
-    case parser_state_SafeChar: return "SafeChar";
-    case parser_state_NonUsAscii: return "NonUsAscii";
-    case parser_state_Alpha: return "Alpha";
-    case parser_state_AlphaLower: return "AlphaLower";
-    case parser_state_AlphaUpper: return "AlphaUpper";
-    case parser_state_AlphaNum: return "AlphaNum";
-    case parser_state_Digit: return "Digit";
     default: return "<Unspecified>";
     }
 }
