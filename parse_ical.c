@@ -26,8 +26,8 @@
                                  CHAR_IS_NON_USASCII(char))
 
 #define CHAR_IS_VALUE(char) (CHAR_IS_SPACE(char) ||                 \
-                                 ((char) >= 0x21 && (char) <= 0x7E) ||  \
-                                 CHAR_IS_NON_USASCII(char))
+                             ((char) >= 0x21 && (char) <= 0x7E) ||  \
+                             CHAR_IS_NON_USASCII(char))
 
 #define PEEK(buffer, parser) ((parser)->I+1 < (buffer)->Size ? (buffer)->Data[(parser)->I+1] : 0)
 #define PEEK2(buffer, parser) ((parser)->I+2 < (buffer)->Size ? (buffer)->Data[(parser)->I+2] : 0)
@@ -77,6 +77,21 @@ static parser CreateParser()
     return Parser;
 }
 
+#define ERROR_BACK_BUFFER_COUNT 64
+static void ParserError(parser *Parser, buffer *Buffer)
+{
+    /* TODO: remove this and just return/handle errors!!!! :( */
+    char ErrorChars[ERROR_BACK_BUFFER_COUNT];
+    s32 ErrorIndex;
+
+    ErrorIndex = Parser->I - ERROR_BACK_BUFFER_COUNT > 0 ? Parser->I - ERROR_BACK_BUFFER_COUNT : 0;
+    memcpy(ErrorChars, &Buffer->Data[Parser->I-ERROR_BACK_BUFFER_COUNT], Parser->I - ErrorIndex);
+    ErrorChars[ERROR_BACK_BUFFER_COUNT-1] = 0;
+    printf("%s\n", ErrorChars);
+
+    exit(1);
+}
+
 static void ExpectChar(parser *Parser, buffer *Buffer, u8 Char)
 {
     if(Buffer->Data[Parser->I] == Char)
@@ -86,7 +101,7 @@ static void ExpectChar(parser *Parser, buffer *Buffer, u8 Char)
     else
     {
         printf("Expected char (%d)\n", Char);
-        Parser->State = parser_state_Error;
+        ParserError(Parser, Buffer);
     }
 }
 
@@ -157,6 +172,7 @@ static void ParseQuotedString(parser *Parser, buffer *Buffer)
     ExpectChar(Parser, Buffer, '"');
     for(;;)
     {
+        /* TODO: parse UTF char-streams? */
         if(CHAR_IS_Q_SAFE_STRING(Buffer->Data[Parser->I]))
         {
             ++Parser->I;
@@ -177,6 +193,7 @@ static void ParamText(parser *Parser, buffer *Buffer)
     */
     for(;;)
     {
+        /* TODO: parse UTF char-streams? */
         if(CHAR_IS_SAFE_CHAR(Buffer->Data[Parser->I]))
         {
             ++Parser->I;
@@ -259,6 +276,7 @@ static void ParseValue(parser *Parser, buffer *Buffer)
     */
     for(;;)
     {
+        /* TODO: parse UTF char-streams */
         if(CHAR_IS_VALUE(Buffer->Data[Parser->I]))
         {
             ++Parser->I;
@@ -284,7 +302,8 @@ static void ParseCRLF(parser *Parser, buffer *Buffer)
     }
     else
     {
-        printf("[ Error ] expected newline sequence\n");
+        printf("[ Error ] expected newline sequence %d\n", Parser->I);
+        ParserError(Parser, Buffer);
     }
 }
 
@@ -298,13 +317,10 @@ static void ParseContentLine(parser *Parser, buffer *Buffer)
     ParseCRLF(Parser, Buffer);
 }
 
-#define ERROR_BACK_BUFFER_COUNT 64
 static void ParseICal(buffer *Buffer)
 {
     b32 Running = 1;
     parser Parser = CreateParser();
-    char ErrorChars[ERROR_BACK_BUFFER_COUNT];
-    s32 ErrorIndex;
     Parser.State = parser_state_ContentLine;
     while(Running && Parser.I < Buffer->Size)
     {
@@ -314,10 +330,7 @@ static void ParseICal(buffer *Buffer)
             ParseContentLine(&Parser, Buffer);
             break;
         case parser_state_Error:
-            ErrorIndex = Parser.I - ERROR_BACK_BUFFER_COUNT > 0 ? Parser.I - ERROR_BACK_BUFFER_COUNT : 0;
-            memcpy(ErrorChars, &Buffer->Data[Parser.I-ERROR_BACK_BUFFER_COUNT], Parser.I - ErrorIndex);
-            ErrorChars[ERROR_BACK_BUFFER_COUNT-1] = 0;
-            printf("%s\n", ErrorChars);
+            ParserError(&Parser, Buffer);
             Running = 0;
             break;
         default:
@@ -329,7 +342,8 @@ static void ParseICal(buffer *Buffer)
 
 static void RemoveLineContinuations(buffer *Buffer)
 {
-    if(!Buffer) return;
+    /* TODO: parse UTF char-streams to prevent detecting line-continuations mid utf-octet-stream */
+    if(!Buffer) return; /* return and handle error :( */
     printf("RemoveLineContinuations\n");
     s32 BufferIndex, WriteIndex = 0, ContinuationCount = 0;
     for(BufferIndex = 0; BufferIndex < Buffer->Size; ++BufferIndex)
