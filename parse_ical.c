@@ -340,8 +340,9 @@ static void RemoveLineContinuations(buffer *Buffer)
             u8 Char1 = Buffer->Data[BufferIndex];
             u8 Char2 = Buffer->Data[BufferIndex+1];
             u8 Char3 = Buffer->Data[BufferIndex+2];
-            b32 NewlineSpace = Char1 == char_code_Newline && CHAR_IS_SPACE(Char2);
-            b32 CRLFSpace = Char1 == char_code_CR && Char2 == char_code_LF && CHAR_IS_SPACE(Char3);
+            b32 NewlineSpace = Char1 == char_code_Newline && CHAR_IS_SPACE(Char2); /* TODO: newline-space might _not_ be spec */
+            b32 Char2Newline = Char2 == '\n' || Char2 == char_code_LF;
+            b32 CRLFSpace = Char1 == char_code_CR && Char2Newline && CHAR_IS_SPACE(Char3);
             if(NewlineSpace || CRLFSpace)
             {
                 BufferIndex += 3;
