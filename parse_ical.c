@@ -14,12 +14,12 @@
                                    ((char) >= 0xE1 && (char) <= 0xEC) || \
                                    ((char) >= 0xEE && (char) <= 0xEF))
 #define CHAR_IS_Q_SAFE_STRING(char) (CHAR_IS_SPACE(char) ||             \
-                                     (char) >= 0x21 ||                  \
+                                     (char) == 0x21 ||                  \
                                      ((char) >= 0x23 && (char) <= 0x7E) || \
                                      CHAR_IS_NON_USASCII(char))
 
 #define CHAR_IS_SAFE_CHAR(char) (CHAR_IS_SPACE(char) ||                 \
-                                 (char) >= 0x21 ||                      \
+                                 (char) == 0x21 ||                      \
                                  ((char) >= 0x23 && (char) <= 0x2B) ||  \
                                  ((char) >= 0x2D && (char) <= 0x39) ||  \
                                  ((char) >= 0x3C && (char) <= 0x7E) ||  \
