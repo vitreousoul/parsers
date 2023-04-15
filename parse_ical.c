@@ -33,6 +33,57 @@
 #define PEEK2(buffer, parser) ((parser)->I+2 < (buffer)->Size ? (buffer)->Data[(parser)->I+2] : 0)
 #define PEEK3(buffer, parser) ((parser)->I+3 < (buffer)->Size ? (buffer)->Data[(parser)->I+3] : 0)
 
+/* NOTE: we only need to look at the top 5 bits to determine the length
+   of a utf char. This table simply maps those top five bits to the length.
+
+   https://www.rfc-editor.org/rfc/rfc3629
+*/
+s32 UTF_CHAR_LENGTH_TABLE[32] = {
+    /* ASCII */
+    [0b00000] = 1,
+    [0b00001] = 1,
+    [0b00010] = 1,
+    [0b00011] = 1,
+    [0b00100] = 1,
+    [0b00101] = 1,
+    [0b00110] = 1,
+    [0b00111] = 1,
+    [0b01000] = 1,
+    [0b01001] = 1,
+    [0b01010] = 1,
+    [0b01011] = 1,
+    [0b01100] = 1,
+    [0b01101] = 1,
+    [0b01110] = 1,
+    [0b01111] = 1,
+    /* utf tail */
+    [0b10000] = -1,
+    [0b10001] = -1,
+    [0b10010] = -1,
+    [0b10011] = -1,
+    [0b10100] = -1,
+    [0b10101] = -1,
+    [0b10110] = -1,
+    [0b10111] = -1,
+    /* utf8-2 */
+    [0b11000] = 2,
+    [0b11001] = 2,
+    [0b11010] = 2,
+    [0b11011] = 2,
+    /* utf8-3 */
+    [0b11100] = 3,
+    [0b11101] = 3,
+    /* utf8-4 */
+    [0b11110] = 4,
+    [0b11111] = -1, /* should not appear */
+};
+
+static s32 GetUtfCharLength(u8 Char)
+{
+    u8 MaskedChar = (Char >> 3) & 0b00011111;
+    return UTF_CHAR_LENGTH_TABLE[MaskedChar];
+}
+
 static void *AllocBuffer(u32 Size)
 {
     u8 *Data = malloc(sizeof(u8) * Size);
@@ -101,6 +152,21 @@ static void ExpectChar(parser *Parser, buffer *Buffer, u8 Char)
     else
     {
         printf("Expected char (%d)\n", Char);
+        ParserError(Parser, Buffer);
+    }
+}
+
+static void ParseUtf(parser *Parser, buffer *Buffer)
+{
+    s32 CharLength = GetUtfCharLength(Buffer->Data[Parser->I]);
+    if(CharLength > 0)
+    {
+        /* TODO: check if tail is valid */
+        Parser->I += CharLength;
+    }
+    else
+    {
+        printf("unexpected char %d in ParseUtf\n", Buffer->Data[Parser->I]);
         ParserError(Parser, Buffer);
     }
 }
@@ -175,7 +241,7 @@ static void ParseQuotedString(parser *Parser, buffer *Buffer)
         /* TODO: parse UTF char-streams? */
         if(CHAR_IS_Q_SAFE_STRING(Buffer->Data[Parser->I]))
         {
-            ++Parser->I;
+            ParseUtf(Parser, Buffer);
         }
         else
         {
@@ -196,7 +262,7 @@ static void ParamText(parser *Parser, buffer *Buffer)
         /* TODO: parse UTF char-streams? */
         if(CHAR_IS_SAFE_CHAR(Buffer->Data[Parser->I]))
         {
-            ++Parser->I;
+            ParseUtf(Parser, Buffer);
         }
         else
         {
@@ -276,10 +342,9 @@ static void ParseValue(parser *Parser, buffer *Buffer)
     */
     for(;;)
     {
-        /* TODO: parse UTF char-streams */
         if(CHAR_IS_VALUE(Buffer->Data[Parser->I]))
         {
-            ++Parser->I;
+            ParseUtf(Parser, Buffer);
         }
         else
         {
